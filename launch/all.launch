@@ -1,0 +1,8 @@
+<launch>
+  <arg name="human_3d_pose_model" value="$(env HOME)/openvino_models/public/human-pose-estimation-3d-0001/FP16/human-pose-estimation-3d-0001.xml" />
+  
+  <node pkg="hri_skeletons" type="human_pose_estimation_3d.py" name="human_pose_estimation_3d" output="screen">
+    <param name="model" value="$(arg human_3d_pose_model)" />
+  </node>
+
+</launch>
