@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="human">
-    <xacro:property name="id" value="03d4" />
-    <xacro:property name="upperarm_length" value="0.4" />
-    <xacro:property name="forearm_length" value="0.45" />
+    <xacro:property name="id" value="$(arg id)" />
+    <xacro:property name="upperarm_length" value="$(arg upperarm_length)" />
+    <xacro:property name="forearm_length" value="$(arg forearm_length)" />
     <xacro:property name="neck_shoulder_length" value="0.3" />
     <xacro:property name="torso_height" value="0.8" />
     <xacro:property name="head_radius" value="0.2" />
@@ -93,7 +93,7 @@
             <limit effort="1000" lower="-1.8" upper="2.5" velocity="0.5" />
             <parent link="${parent}"/>
             <child link="${suffix}_y_shoulder_${id}"/>
-            <origin rpy="0 0 ${reflect * 1.57}" xyz="0 ${reflect * neck_shoulder_length} 0" />
+            <origin rpy="0 0 ${reflect * pi / 2}" xyz="0 ${reflect * neck_shoulder_length} 0" />
         </joint>
         <xacro:arm_segment name="${suffix}_upperarm"
                      length = "${upperarm_length}"
