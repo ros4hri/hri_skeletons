@@ -46,6 +46,9 @@
     <link name="body_${id}">
     </link>
 
+    <link name="waist_${id}">
+    </link>
+
     <link name="torso_${id}">
         <visual>
             <geometry>
@@ -64,10 +67,18 @@
     </link>
 
     <joint name="torso_${id}" type="fixed">
-        <axis xyz="0 0 1" />
-        <parent link="body_${id}"/>
+        <parent link="waist_${id}"/>
         <child link="torso_${id}"/>
         <origin rpy="0 0 0" xyz="0 0 ${torso_height}" />
+    </joint>
+
+
+    <joint name="waist_${id}" type="revolute">
+        <axis xyz="0 1 0" />
+        <limit effort="1000" lower="-.2" upper="1." velocity="0.5" />
+        <parent link="body_${id}"/>
+        <child link="waist_${id}"/>
+        <origin rpy="0 0 0" xyz="0 0 0" />
     </joint>
 
     <link name="head_r_${id}">
@@ -203,11 +214,11 @@
         </visual>
         </link>
         <joint name="${suffix}_r_hip_${id}" type="revolute">
-            <axis xyz="0 ${reflect * -1} 0" />
+            <axis xyz="0 -1 0" />
             <limit effort="1000" lower="-.2" upper="1." velocity="0.5" />
             <parent link="${parent}"/>
             <child link="${suffix}_r_hip_${id}"/>
-            <origin rpy="${reflect * pi/2} ${pi/2} ${pi}" xyz="0 ${reflect * waist_length/2} -${torso_height}" />
+            <origin rpy="${reflect * pi/2} ${pi/2} ${pi}" xyz="0 ${reflect * waist_length/2} 0" />
         </joint>
         <xacro:limb_segment name="${suffix}_tight_${id}"
                      length = "${tight_length}"
@@ -231,8 +242,8 @@
                      link_max_limit="0" />
     </xacro:macro>
 
-    <xacro:leg suffix="l" reflect="1" parent="torso_${id}" />
-    <xacro:leg suffix="r" reflect="-1" parent="torso_${id}" />
+    <xacro:leg suffix="l" reflect="1" parent="body_${id}" />
+    <xacro:leg suffix="r" reflect="-1" parent="body_${id}" />
 
 
 
