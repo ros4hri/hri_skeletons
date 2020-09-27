@@ -17,19 +17,25 @@
 import json
 import os
 import sys
+import uuid
 
 import cv2
 import numpy as np
 
-from modules.inference_engine import InferenceEngine
-from modules.input_reader import InputReader
-from modules.draw import Plotter3d, draw_poses
-from modules.parse_poses import parse_poses
+from hri_skeletons.urdf_generator import make_urdf_human
+from hri_skeletons.modules.inference_engine import InferenceEngine
+from hri_skeletons.modules.input_reader import InputReader
+from hri_skeletons.modules.draw import Plotter3d, draw_poses
+from hri_skeletons.modules.parse_poses import parse_poses
 
 import rospy
+import rosparam
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from cv_bridge.boost.cv_bridge_boost import getCvType
+
+def generate_id():
+    return str(uuid.uuid4())[:5] # for a 5 char long ID
 
 class HumanPoseEstimator3D:
     
@@ -55,11 +61,11 @@ class HumanPoseEstimator3D:
             cv2.setMouseCallback(self.canvas_3d_window_name, Plotter3d.mouse_callback)
     
         extrinsics = {
-    	"R": [[		0.1656794936,		0.0336560618,		-0.9856051821	    ],
-    	      [		-0.09224101321,		0.9955650135,		0.01849052095	    ],
-    	      [		0.9818563545,		0.08784972047,		0.1680491765	    ]],
-    	"t": [[	17.76193366    ],    [	126.741365    ],    [	286.3860507	    ]]
-          }
+            "R": [[0.1656794936,0.0336560618,-0.9856051821    ],
+                [-0.09224101321,0.9955650135,0.01849052095    ],
+                [0.9818563545,0.08784972047,0.1680491765    ]],
+            "t": [[17.76193366    ],    [126.741365    ],    [286.3860507    ]]
+            }
         self.R = np.array(extrinsics['R'], dtype=np.float32)
         self.t = np.array(extrinsics['t'], dtype=np.float32)
         self.R_inv = np.linalg.inv(self.R)
@@ -68,6 +74,9 @@ class HumanPoseEstimator3D:
         self.fx = -1 # TODO: get that from camera info
     
         self.mean_time = 0
+
+        self.got_frames = False
+        self.urdf_published = False
 
         self.subscriber = rospy.Subscriber("image", Image, self.on_image_cb,  queue_size = 1)
         rospy.loginfo("Waiting for frames")
@@ -82,6 +91,10 @@ class HumanPoseEstimator3D:
     
     
     def on_image_cb(self, data):
+
+        if not self.got_frames:
+            rospy.loginfo("Got first frame! Starting skeleton detection")
+            self.got_frames = True
 
         try:
             frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -102,6 +115,14 @@ class HumanPoseEstimator3D:
     
         edges = []
         if len(poses_3d) > 0:
+
+            if not self.urdf_published:
+                id = generate_id()
+                urdf = make_urdf_human(id)
+                rospy.loginfo("Publishing URDF description for <%s>: human_description_%s" % (id, id))
+                rosparam.set_param_raw("human_description_%s" % id, urdf)
+                self.urdf_published = True
+
             poses_3d = self.rotate_poses(poses_3d)
             poses_3d_copy = poses_3d.copy()
             x = poses_3d_copy[:, 0::4]

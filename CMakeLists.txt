@@ -111,7 +111,7 @@ catkin_package(
 ## Build ##
 ###########
 
-add_subdirectory(src/pose_extractor)
+add_subdirectory(src/hri_skeletons/pose_extractor)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -158,7 +158,7 @@ include_directories(
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
 catkin_install_python(PROGRAMS
-	src/human_pose_estimation_3d.py
+	src/hri_skeletons/human_pose_estimation_3d.py
 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
