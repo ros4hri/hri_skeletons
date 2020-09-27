@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="human">
+    <xacro:property name="upperarm_length" value="0.4" />
+    <xacro:property name="forearm_length" value="0.45" />
+    <xacro:property name="neck_shoulder_length" value="0.3" />
+    <xacro:property name="torso_height" value="0.8" />
+
+    <xacro:property name="arm_radius" value="0.025" />
+
+    <link name="neck">
+        <visual>
+            <geometry>
+                <box size="0.2 ${neck_shoulder_length * 2} ${torso_height}"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 -${torso_height/2}" />
+        </visual>
+    </link>
+
+    <xacro:macro name="arm_segment" params="name reflect length parent attachment_origin attachment_rotation link_name">
+        <link name="${name}">
+            <visual>
+                <geometry>
+                    <box size="${length} ${arm_radius * 2} ${arm_radius * 2}"/>
+                </geometry>
+                <origin rpy="0 0 0" xyz="${length/2} 0 0" />
+            </visual>
+        </link>
+
+        <joint name="${link_name}" type="revolute">
+            <axis xyz="0 1 0" />
+            <limit effort="1000" lower="-1.7" upper="1.5" velocity="0.5" />
+            <parent link="${parent}"/>
+            <child link="${name}"/>
+            <origin rpy="${attachment_rotation}" xyz="${attachment_origin}" />
+        </joint>
+    </xacro:macro>
+
+    <xacro:macro name="arm" params="suffix parent reflect">
+        <xacro:arm_segment name="${suffix}_upperarm"
+                     length = "${upperarm_length}"
+                     reflect="${reflect}"
+                     parent="${parent}"
+                     attachment_origin="0 ${reflect * neck_shoulder_length} 0"
+                     attachment_rotation="0 0 ${reflect * 1.57}"
+                     link_name="${suffix}_shoulder" />
+        <xacro:arm_segment name="${suffix}_forearm"
+                     length = "${forearm_length}"
+                     reflect="${reflect}"
+                     parent="${suffix}_upperarm"
+                     attachment_origin="${upperarm_length} 0 0"
+                     attachment_rotation="0 0 0"
+                     link_name="${suffix}_elbow" />
+    </xacro:macro>
+
+    <xacro:arm suffix="l" reflect="1" parent="neck" />
+    <xacro:arm suffix="r" reflect="-1" parent="neck" />
+</robot>
