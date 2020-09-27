@@ -13,6 +13,12 @@ parser.add_argument('-u', '--upperarm-length', type=float, default=20.,
                     help='length of the upperarm, in cm (default: 20)')
 parser.add_argument('-f', '--forearm-length', type=float, default=30.,
                     help='length of the forearm, in cm (default: 30)')
+parser.add_argument('-t', '--torso-height', type=float, default=30.,
+                    help='torso height, in cm (default: 30)')
+parser.add_argument('-s', '--shoulder-to-shoulder', type=float, default=50.,
+                    help='distance between the two shoulders, in cm (default: 50)')
+
+
 
 
 args = parser.parse_args()
@@ -20,7 +26,9 @@ args = parser.parse_args()
 params = {
           'id': args.id,
           'upperarm_length': str(args.upperarm_length/100.),
-          'forearm_length': str(args.forearm_length/100.)
+          'forearm_length': str(args.forearm_length/100.),
+          'torso_height': str(args.torso_height/100.),
+          'neck_shoulder_length': str((args.shoulder_to_shoulder/100.)/2),
           }
 
 print(xacro.process_file(TPL, mappings=params).toprettyxml(indent="   "))
