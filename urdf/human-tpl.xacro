@@ -4,6 +4,8 @@
     <xacro:property name="forearm_length" value="0.45" />
     <xacro:property name="neck_shoulder_length" value="0.3" />
     <xacro:property name="torso_height" value="0.8" />
+    <xacro:property name="head_radius" value="0.2" />
+    <xacro:property name="neck_length" value="0.1" />
 
     <xacro:property name="arm_radius" value="0.025" />
 
@@ -16,7 +18,44 @@
         </visual>
     </link>
 
-    <xacro:macro name="arm_segment" params="name reflect length parent attachment_origin attachment_rotation link_name">
+    <link name="head_r">
+    </link>
+    <link name="head_p">
+    </link>
+
+    <link name="head">
+        <visual>
+            <geometry>
+                <sphere radius="${head_radius}"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 ${head_radius}" />
+        </visual>
+    </link>
+    <joint name="head_r" type="revolute">
+        <axis xyz="1 0 0" />
+        <limit effort="1000" lower="-1." upper="1." velocity="0.5" />
+        <parent link="neck"/>
+        <child link="head_r"/>
+        <origin rpy="0 0 0" xyz="0 0 ${neck_length}" />
+    </joint>
+    <joint name="head_p" type="revolute">
+        <axis xyz="0 -1 0" />
+        <limit effort="1000" lower="-1.4" upper="1.4" velocity="0.5" />
+        <parent link="head_r"/>
+        <child link="head_p"/>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+    </joint>
+    <joint name="head_y" type="revolute">
+        <axis xyz="0 0 1" />
+        <limit effort="1000" lower="-1.5" upper="1.5" velocity="0.5" />
+        <parent link="head_p"/>
+        <child link="head"/>
+        <origin rpy="0 0 0" xyz="0 0 0" />
+    </joint>
+
+
+
+    <xacro:macro name="arm_segment" params="name reflect length parent attachment_origin attachment_rotation link_name link_min_limit link_max_limit">
         <link name="${name}">
             <visual>
                 <geometry>
@@ -27,8 +66,8 @@
         </link>
 
         <joint name="${link_name}" type="revolute">
-            <axis xyz="0 1 0" />
-            <limit effort="1000" lower="-1.7" upper="1.5" velocity="0.5" />
+            <axis xyz="0 -1 0" />
+            <limit effort="1000" lower="${link_min_limit}" upper="${link_max_limit}" velocity="0.5" />
             <parent link="${parent}"/>
             <child link="${name}"/>
             <origin rpy="${attachment_rotation}" xyz="${attachment_origin}" />
@@ -36,20 +75,33 @@
     </xacro:macro>
 
     <xacro:macro name="arm" params="suffix parent reflect">
+        <link name="${suffix}_z_shoulder">
+        </link>
+        <joint name="${suffix}_z_shoulder" type="revolute">
+            <axis xyz="0 0 ${reflect * -1}" />
+            <limit effort="1000" lower="-1.8" upper="2.5" velocity="0.5" />
+            <parent link="${parent}"/>
+            <child link="${suffix}_z_shoulder"/>
+            <origin rpy="0 0 ${reflect * 1.57}" xyz="0 ${reflect * neck_shoulder_length} 0" />
+        </joint>
         <xacro:arm_segment name="${suffix}_upperarm"
                      length = "${upperarm_length}"
                      reflect="${reflect}"
-                     parent="${parent}"
-                     attachment_origin="0 ${reflect * neck_shoulder_length} 0"
-                     attachment_rotation="0 0 ${reflect * 1.57}"
-                     link_name="${suffix}_shoulder" />
+                     parent="${suffix}_z_shoulder"
+                     attachment_origin="0 0 0"
+                     attachment_rotation="0 0 0"
+                     link_name="${suffix}_y_shoulder"
+                     link_min_limit="-1.5"
+                     link_max_limit="1.7" />
         <xacro:arm_segment name="${suffix}_forearm"
                      length = "${forearm_length}"
                      reflect="${reflect}"
                      parent="${suffix}_upperarm"
                      attachment_origin="${upperarm_length} 0 0"
                      attachment_rotation="0 0 0"
-                     link_name="${suffix}_elbow" />
+                     link_name="${suffix}_elbow"
+                     link_min_limit="0"
+                     link_max_limit="2.5" />
     </xacro:macro>
 
     <xacro:arm suffix="l" reflect="1" parent="neck" />
