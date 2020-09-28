@@ -192,6 +192,7 @@ catkin_install_python(PROGRAMS
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 install(FILES
    launch/all.launch 
+   urdf/human-tpl.xacro 
    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

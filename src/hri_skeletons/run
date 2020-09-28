@@ -33,10 +33,11 @@ from hri_skeletons.modules.parse_poses import parse_poses
 
 import rospy
 import rosparam
+
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import JointState
 
-from hri_msgs.msg import Skeleton2D
+from hri_msgs.msg import Skeleton2D, PointOfInterest2D
 
 from cv_bridge import CvBridge, CvBridgeError
 from cv_bridge.boost.cv_bridge_boost import getCvType
@@ -87,9 +88,6 @@ class HumanPoseEstimator3D:
     
         self.mean_time = 0
 
-        self.got_frames = False
-        self.urdf_published = False
-
         self.subscriber = rospy.Subscriber("image", Image, self.on_image_cb,  queue_size = 1)
         rospy.loginfo("Waiting for frames")
     
@@ -104,8 +102,8 @@ class HumanPoseEstimator3D:
     def create_publishers(self, body_id):
         prefix = TOPIC_PREFIX + "%s/" % body_id
         self.publishers[body_id] = [
-                rospy.advertise(prefix + "skeleton2d", Skeleton2D),
-                rospy.advertise(prefix + "joint_states", JointState)
+                rospy.Publisher(prefix + "skeleton2d", Skeleton2D, queue_size=1),
+                rospy.Publisher(prefix + "joint_states", JointState, queue_size=1)
                 ]
 
     def delete_body_id(self, body_id):
@@ -165,7 +163,7 @@ class HumanPoseEstimator3D:
     def publish(self, body_id, original_image, poses_3d, poses_2d):
 
         pose_3d = poses_3d[self.body_id_2_pose_id[body_id]]
-        pose_2d = poses_2d[self.body_id_2_pose_id[body_id]]
+        pose_2d = np.array(poses_2d[self.body_id_2_pose_id[body_id]][0:-1]).reshape((-1, 3))
 
         skel = self.make_2d_skeleton_msg(original_image, pose_2d)
 
@@ -178,14 +176,12 @@ class HumanPoseEstimator3D:
 
     def on_image_cb(self, data):
 
-        if not self.got_frames:
-            rospy.loginfo("Got first frame! Starting skeleton detection")
-            self.got_frames = True
+        rospy.loginfo_once("Got first frame! Starting skeleton detection")
 
         try:
             frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
-            print(e)
+            rospy.logerr(e)
             return
     
         current_time = cv2.getTickCount()
@@ -216,16 +212,21 @@ class HumanPoseEstimator3D:
  
             last_nb_bodies = len(self.body_id_2_pose_id)
             if len(poses_3d) != last_nb_bodies: # one body has appeared or disappeared! We have to re-assign ids for everyone
-                self.body_id_2_pose_id = {}
+                for body_id in list(self.body_id_2_pose_id.keys()):
+                    self.delete_body_id(body_id)
+                    del self.body_id_2_pose_id[body_id]
+
                 for pose_id, pose in enumerate(poses_3d):
                     body_id = generate_id()
                     self.body_id_2_pose_id[body_id] = pose_id
+                    self.create_publishers(body_id)
 
-                    urdf = make_urdf_human(id)
-                    rospy.loginfo("Publishing URDF description for <%s>: human_description_%s" % (id, id))
-                    rosparam.set_param_raw("human_description_%s" % id, urdf)
+                    urdf = make_urdf_human(body_id)
+                    rospy.loginfo("Setting URDF description for body <%s> (param name: human_description_%s)" % (body_id, body_id))
+                    rosparam.set_param_raw("human_description_%s" % body_id, urdf)
 
             for body_id in self.body_id_2_pose_id.keys():
+
                 self.publish(body_id, data, poses_3d, poses_2d)
 
        
@@ -250,7 +251,7 @@ class HumanPoseEstimator3D:
 
 if __name__ == '__main__':
     
-    rospy.init_node("human_pose_estimation_3d")
+    rospy.init_node("hri_skeletons")
 
     # link to the XML file containing the OpenVINO model for 3D human pose estimation
     # https://github.com/openvinotoolkit/open_model_zoo/blob/master/models/public/human-pose-estimation-3d-0001/description/human-pose-estimation-3d-0001.md
@@ -272,5 +273,5 @@ if __name__ == '__main__':
     try:
         rospy.spin()
     except KeyboardInterrupt:
-        print("Shutting down")
+        rospy.loginfo("Shutting down")
         cv2.destroyAllWindows()

@@ -1,8 +1,10 @@
 import xacro
+import rospkg
+from pathlib import Path
 
-TPL = "../urdf/human-tpl.xacro"
+TPL = Path(rospkg.RosPack().get_path("hri_skeletons")) / "human-tpl.xacro"
 
-def make_urdf_human(id,
+def make_urdf_human(body_id,
                head_radius = None,
                neck_shoulder_length = None,
                upperarm_length = None, 
@@ -12,7 +14,7 @@ def make_urdf_human(id,
                tight_length = None,
                tibia_length = None
                ):
-    params = {'id': id}
+    params = {'id': body_id}
 
     if head_radius:
         params['head_radius'] = str(head_radius)
