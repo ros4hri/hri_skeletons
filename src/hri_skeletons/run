@@ -37,6 +37,8 @@ from cv_bridge.boost.cv_bridge_boost import getCvType
 def generate_id():
     return str(uuid.uuid4())[:5] # for a 5 char long ID
 
+pose_id_2_body_id = {}
+
 class HumanPoseEstimator3D:
     
     def __init__(self, model, device, height_size, debug=False):
