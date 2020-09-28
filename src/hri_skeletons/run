@@ -18,6 +18,7 @@ import json
 import os
 import sys
 import copy
+import subprocess
 
 import uuid
 
@@ -57,7 +58,8 @@ class HumanPoseEstimator3D:
         self.bridge = CvBridge()
 
         self.body_id_2_pose_id = {}
-        self.publishers = {} # map a body id to its publishers
+        self.publishers = {} # maps a body id to its publishers
+        self.robot_state_publishers = {} # maps a body id to its robot_state_publisher instance
    
         self.stride = 8
 
@@ -99,16 +101,44 @@ class HumanPoseEstimator3D:
     
         return poses_3d
     
-    def create_publishers(self, body_id):
+    def create_body(self, body_id):
+
+        # 1. generate a URDF model for this body, and set it on the
+        #    ROS parameter server
+        urdf = make_urdf_human(body_id)
+        rospy.loginfo("Setting URDF description for body <%s> (param name: human_description_%s)" % (body_id, body_id))
+        human_description = "human_description_%s" % body_id
+        rosparam.set_param_raw(human_description, urdf)
+
+        # 2. create the publishers for the 2D skeleton and joint state
         prefix = TOPIC_PREFIX + "%s/" % body_id
         self.publishers[body_id] = [
                 rospy.Publisher(prefix + "skeleton2d", Skeleton2D, queue_size=1),
                 rospy.Publisher(prefix + "joint_states", JointState, queue_size=1)
                 ]
 
+        # 3. spawn a new robot_state_publisher process, which will publish the
+        #    TF frames for this body
+        rospy.loginfo("Spawning a instance of robot_state_publisher for this body...")
+        cmd =["rosrun", "robot_state_publisher", "robot_state_publisher", 
+              "__name:=robot_state_publisher_body_%s" % body_id,
+              "joint_states:=%s" % (prefix + "joint_states"),
+              "robot_description:=%s" % human_description,
+              "_publish_frequency:=25",
+              "_use_tf_static:=false"
+              ]
+        rospy.loginfo("Executing: %s" % " ".join(cmd))
+        proc = subprocess.Popen(cmd,
+                          stdout=sys.stdout,
+                          stderr=subprocess.STDOUT)
+        self.robot_state_publishers[body_id] = proc
+
     def delete_body_id(self, body_id):
+        rospy.loginfo("Removing body <%s>..." % body_id)
         for p in self.publishers[body_id]:
             p.unregister()
+        self.robot_state_publishers[body_id].terminate()
+
         del self.publishers[body_id]
 
 
@@ -219,11 +249,7 @@ class HumanPoseEstimator3D:
                 for pose_id, pose in enumerate(poses_3d):
                     body_id = generate_id()
                     self.body_id_2_pose_id[body_id] = pose_id
-                    self.create_publishers(body_id)
-
-                    urdf = make_urdf_human(body_id)
-                    rospy.loginfo("Setting URDF description for body <%s> (param name: human_description_%s)" % (body_id, body_id))
-                    rosparam.set_param_raw("human_description_%s" % body_id, urdf)
+                    self.create_body(body_id)
 
             for body_id in self.body_id_2_pose_id.keys():
 
