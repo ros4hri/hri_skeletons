@@ -17,12 +17,15 @@
 import json
 import os
 import sys
+import copy
+
 import uuid
 
 import cv2
 import numpy as np
 
 from hri_skeletons.urdf_generator import make_urdf_human
+from hri_skeletons.jointstate import compute_jointstate, HUMAN_JOINT_NAMES
 from hri_skeletons.modules.inference_engine import InferenceEngine
 from hri_skeletons.modules.input_reader import InputReader
 from hri_skeletons.modules.draw import Plotter3d, draw_poses
@@ -31,13 +34,18 @@ from hri_skeletons.modules.parse_poses import parse_poses
 import rospy
 import rosparam
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import JointState
+
+from hri_msgs.msg import Skeleton2D
+
 from cv_bridge import CvBridge, CvBridgeError
 from cv_bridge.boost.cv_bridge_boost import getCvType
+
+TOPIC_PREFIX = "humans/bodies/"
 
 def generate_id():
     return str(uuid.uuid4())[:5] # for a 5 char long ID
 
-pose_id_2_body_id = {}
 
 class HumanPoseEstimator3D:
     
@@ -47,6 +55,8 @@ class HumanPoseEstimator3D:
 
         self.bridge = CvBridge()
 
+        self.body_id_2_pose_id = {}
+        self.publishers = {} # map a body id to its publishers
    
         self.stride = 8
 
@@ -91,7 +101,81 @@ class HumanPoseEstimator3D:
     
         return poses_3d
     
-    
+    def create_publishers(self, body_id):
+        prefix = TOPIC_PREFIX + "%s/" % body_id
+        self.publishers[body_id] = [
+                rospy.advertise(prefix + "skeleton2d", Skeleton2D),
+                rospy.advertise(prefix + "joint_states", JointState)
+                ]
+
+    def delete_body_id(self, body_id):
+        for p in self.publishers[body_id]:
+            p.unregister()
+        del self.publishers[body_id]
+
+
+    def make_2d_skeleton_msg(self, original_image, pose_2d):
+        skel = Skeleton2D()
+        skel.header = copy.copy(original_image.header)
+
+        # OpenVINO keypoint order:
+        # ['neck', 'nose',
+        #   'l_sho', 'l_elb', 'l_wri', 'l_hip', 'l_knee', 'l_ank',
+        #   'r_sho', 'r_elb', 'r_wri', 'r_hip', 'r_knee', 'r_ank',
+        #   'r_eye', 'l_eye',
+        #   'r_ear', 'l_ear']
+
+        skel.skeleton = [None] * 18
+
+        openvino_ordered_kpt = [PointOfInterest2D(x=x, y=y, c=c) for x,y,c in pose_2d]
+
+        skel.skeleton[Skeleton2D.NECK] =           openvino_ordered_kpt[0]
+        skel.skeleton[Skeleton2D.NOSE] =           openvino_ordered_kpt[1]
+        skel.skeleton[Skeleton2D.LEFT_SHOULDER] =  openvino_ordered_kpt[2]
+        skel.skeleton[Skeleton2D.LEFT_ELBOW] =     openvino_ordered_kpt[3]
+        skel.skeleton[Skeleton2D.LEFT_WRIST] =     openvino_ordered_kpt[4]
+        skel.skeleton[Skeleton2D.LEFT_HIP] =       openvino_ordered_kpt[5]
+        skel.skeleton[Skeleton2D.LEFT_KNEE] =      openvino_ordered_kpt[6]
+        skel.skeleton[Skeleton2D.LEFT_ANKLE] =     openvino_ordered_kpt[7]
+        skel.skeleton[Skeleton2D.RIGHT_SHOULDER] = openvino_ordered_kpt[8]
+        skel.skeleton[Skeleton2D.RIGHT_ELBOW] =    openvino_ordered_kpt[9]
+        skel.skeleton[Skeleton2D.RIGHT_WRIST] =    openvino_ordered_kpt[10]
+        skel.skeleton[Skeleton2D.RIGHT_HIP] =      openvino_ordered_kpt[11]
+        skel.skeleton[Skeleton2D.RIGHT_KNEE] =     openvino_ordered_kpt[12]
+        skel.skeleton[Skeleton2D.RIGHT_ANKLE] =    openvino_ordered_kpt[13]
+        skel.skeleton[Skeleton2D.RIGHT_EYE] =      openvino_ordered_kpt[14]
+        skel.skeleton[Skeleton2D.LEFT_EYE] =       openvino_ordered_kpt[15]
+        skel.skeleton[Skeleton2D.RIGHT_EAR] =      openvino_ordered_kpt[16]
+        skel.skeleton[Skeleton2D.LEFT_EAR] =       openvino_ordered_kpt[17]
+ 
+        return skel
+
+    def make_jointstate(self, body_id, original_image, pose_3d):
+
+        js = JointState()
+
+        js.header = copy.copy(original_image.header)
+
+        js.name = [jn + "_%s" % body_id for jn in HUMAN_JOINT_NAMES]
+
+        js.position = compute_jointstate(pose_3d)
+
+        return js
+
+    def publish(self, body_id, original_image, poses_3d, poses_2d):
+
+        pose_3d = poses_3d[self.body_id_2_pose_id[body_id]]
+        pose_2d = poses_2d[self.body_id_2_pose_id[body_id]]
+
+        skel = self.make_2d_skeleton_msg(original_image, pose_2d)
+
+        jointstate = self.make_jointstate(body_id, original_image, pose_3d)
+
+        skel_pub, jointstate_pub = self.publishers[body_id]
+
+        skel_pub.publish(skel)
+        jointstate_pub.publish(jointstate)
+
     def on_image_cb(self, data):
 
         if not self.got_frames:
@@ -118,12 +202,7 @@ class HumanPoseEstimator3D:
         edges = []
         if len(poses_3d) > 0:
 
-            if not self.urdf_published:
-                id = generate_id()
-                urdf = make_urdf_human(id)
-                rospy.loginfo("Publishing URDF description for <%s>: human_description_%s" % (id, id))
-                rosparam.set_param_raw("human_description_%s" % id, urdf)
-                self.urdf_published = True
+            
 
             poses_3d = self.rotate_poses(poses_3d)
             poses_3d_copy = poses_3d.copy()
@@ -134,7 +213,22 @@ class HumanPoseEstimator3D:
     
             poses_3d = poses_3d.reshape(poses_3d.shape[0], 19, -1)[:, :, 0:3]
             edges = (Plotter3d.SKELETON_EDGES + 19 * np.arange(poses_3d.shape[0]).reshape((-1, 1, 1))).reshape((-1, 2))
-        
+ 
+            last_nb_bodies = len(self.body_id_2_pose_id)
+            if len(poses_3d) != last_nb_bodies: # one body has appeared or disappeared! We have to re-assign ids for everyone
+                self.body_id_2_pose_id = {}
+                for pose_id, pose in enumerate(poses_3d):
+                    body_id = generate_id()
+                    self.body_id_2_pose_id[body_id] = pose_id
+
+                    urdf = make_urdf_human(id)
+                    rospy.loginfo("Publishing URDF description for <%s>: human_description_%s" % (id, id))
+                    rosparam.set_param_raw("human_description_%s" % id, urdf)
+
+            for body_id in self.body_id_2_pose_id.keys():
+                self.publish(body_id, data, poses_3d, poses_2d)
+
+       
         if self.debug:
             self.plotter.plot(self.canvas_3d, poses_3d, edges)
         

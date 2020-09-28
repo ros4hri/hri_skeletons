@@ -1,7 +1,5 @@
 import xacro
 
-
-
 TPL = "../urdf/human-tpl.xacro"
 
 def make_urdf_human(id,
