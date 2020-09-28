@@ -7,7 +7,8 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-#  rospy
+    rospy
+    hri_msgs
 )
 
 
@@ -158,7 +159,7 @@ include_directories(
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
 
 catkin_install_python(PROGRAMS
-	src/hri_skeletons/human_pose_estimation_3d.py
+	src/hri_skeletons/run
 	DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   )
 
