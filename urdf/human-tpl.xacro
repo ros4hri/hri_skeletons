@@ -178,16 +178,25 @@
             <child link="${suffix}_y_shoulder_${id}"/>
             <origin rpy="0 0 ${reflect * pi / 2}" xyz="0 ${reflect * neck_shoulder_length} 0" />
         </joint>
+        <link name="${suffix}_p_shoulder_${id}">
+        </link>
+        <joint name="${suffix}_p_shoulder_${id}" type="revolute">
+            <axis xyz="0 -1 0" />
+            <limit effort="1000" lower="-2.5" upper="1.7" velocity="0.5" />
+            <parent link="${suffix}_y_shoulder_${id}"/>
+            <child link="${suffix}_p_shoulder_${id}"/>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+        </joint>
         <xacro:limb_segment name="${suffix}_upperarm_${id}"
                      length = "${upperarm_length}"
                      reflect="${reflect}"
-                     parent="${suffix}_y_shoulder_${id}"
+                     parent="${suffix}_p_shoulder_${id}"
                      attachment_origin="0 0 0"
                      attachment_rotation="0 0 0"
-                     link_name="${suffix}_p_shoulder_${id}"
-                     link_axis="0 -1 0"
-                     link_min_limit="-2.5"
-                     link_max_limit="1.7" />
+                     link_name="${suffix}_r_shoulder_${id}"
+                     link_axis="${reflect} 0 0"
+                     link_min_limit="-1.7"
+                     link_max_limit="1.5" />
          <xacro:limb_segment name="${suffix}_forearm_${id}"
                      length = "${forearm_length}"
                      reflect="${reflect}"
@@ -195,9 +204,18 @@
                      attachment_origin="${upperarm_length} 0 0"
                      attachment_rotation="0 0 0"
                      link_name="${suffix}_elbow_${id}"
-                     link_axis="0 -1 0"
+                     link_axis="0 0 ${-reflect}"
                      link_min_limit="0"
                      link_max_limit="2.5" />
+
+        <link name="${suffix}_hand_${id}">
+        </link>
+        <joint name="${suffix}_wrist_${id}" type="fixed">
+            <parent link="${suffix}_forearm_${id}"/>
+            <child link="${suffix}_hand_${id}"/>
+            <origin rpy="0 0 0" xyz="${forearm_length} 0 0" />
+        </joint>
+
     </xacro:macro>
 
     <xacro:arm suffix="l" reflect="1" parent="torso_${id}" />
@@ -240,6 +258,14 @@
                      link_axis="0 0 ${-reflect}"
                      link_min_limit="-2.5"
                      link_max_limit="0" />
+        <link name="${suffix}_foot_${id}">
+        </link>
+        <joint name="${suffix}_ankle_${id}" type="fixed">
+            <parent link="${suffix}_tibia_${id}"/>
+            <child link="${suffix}_foot_${id}"/>
+            <origin rpy="0 0 0" xyz="${tibia_length} 0 0" />
+        </joint>
+
     </xacro:macro>
 
     <xacro:leg suffix="l" reflect="1" parent="body_${id}" />
