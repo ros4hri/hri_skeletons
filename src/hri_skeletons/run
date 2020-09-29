@@ -32,6 +32,9 @@ from hri_skeletons.modules.input_reader import InputReader
 from hri_skeletons.modules.draw import Plotter3d, draw_poses
 from hri_skeletons.modules.parse_poses import parse_poses
 
+import ikpy
+import io # used to wrap the URDF in a file-like object, to be fed to ikpy
+
 import rospy
 import rosparam
 
@@ -60,6 +63,7 @@ class HumanPoseEstimator3D:
         self.body_id_2_pose_id = {}
         self.publishers = {} # maps a body id to its publishers
         self.robot_state_publishers = {} # maps a body id to its robot_state_publisher instance
+        self.ik_chains = {} # maps a body id to the IKpy chains
    
         self.stride = 8
 
@@ -110,6 +114,15 @@ class HumanPoseEstimator3D:
         human_description = "human_description_%s" % body_id
         rosparam.set_param_raw(human_description, urdf)
 
+        urdf_file = io.StringIO(urdf)
+        r_arm_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["r_y_shoulder_%s" % body_id], base_element_type="joint")
+        l_arm_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["l_y_shoulder_%s" % body_id], base_element_type="joint")
+        r_leg_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["r_r_hip_%s" % body_id], base_element_type="joint")
+        l_leg_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["l_r_hip_%s" % body_id], base_element_type="joint")
+
+        self.ik_chains[body_id] = [r_arm_chain, l_arm_chain, r_leg_chain, l_leg_chain]
+
+
         # 2. create the publishers for the 2D skeleton and joint state
         prefix = TOPIC_PREFIX + "%s/" % body_id
         self.publishers[body_id] = [
@@ -137,9 +150,13 @@ class HumanPoseEstimator3D:
         rospy.loginfo("Removing body <%s>..." % body_id)
         for p in self.publishers[body_id]:
             p.unregister()
-        self.robot_state_publishers[body_id].terminate()
-
         del self.publishers[body_id]
+
+        self.robot_state_publishers[body_id].terminate()
+        del self.robot_state_publishers[body_id]
+
+
+        del self.ik_chains[body_id]
 
 
     def make_2d_skeleton_msg(self, original_image, pose_2d):
@@ -186,7 +203,7 @@ class HumanPoseEstimator3D:
 
         js.name = [jn + "_%s" % body_id for jn in HUMAN_JOINT_NAMES]
 
-        js.position = compute_jointstate(pose_3d)
+        js.position = compute_jointstate(self.ik_chains[body_id], pose_3d)
 
         return js
 
