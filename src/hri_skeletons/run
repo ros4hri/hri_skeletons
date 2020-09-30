@@ -116,8 +116,11 @@ class HumanPoseEstimator3D:
 
         urdf_file = io.StringIO(urdf)
         r_arm_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["r_y_shoulder_%s" % body_id], base_element_type="joint")
+        urdf_file.seek(0)
         l_arm_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["l_y_shoulder_%s" % body_id], base_element_type="joint")
+        urdf_file.seek(0)
         r_leg_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["r_r_hip_%s" % body_id], base_element_type="joint")
+        urdf_file.seek(0)
         l_leg_chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["l_r_hip_%s" % body_id], base_element_type="joint")
 
         self.ik_chains[body_id] = [r_arm_chain, l_arm_chain, r_leg_chain, l_leg_chain]
@@ -163,7 +166,7 @@ class HumanPoseEstimator3D:
         skel = Skeleton2D()
         skel.header = copy.copy(original_image.header)
 
-        # OpenVINO keypoint order:
+        # OpenVINO 2D keypoint order:
         # ['neck', 'nose',
         #   'l_sho', 'l_elb', 'l_wri', 'l_hip', 'l_knee', 'l_ank',
         #   'r_sho', 'r_elb', 'r_wri', 'r_hip', 'r_knee', 'r_ank',
@@ -242,10 +245,35 @@ class HumanPoseEstimator3D:
     
         poses_3d, poses_2d = parse_poses(inference_result, input_scale, self.stride, self.fx, is_video = True)
     
+        ####################
+        # Poses 3D
+        #
+        # Poses are returned by OpenVINO as a set of 
+        # keypoints in the following order:
+        #
+        # 00 torso
+        # 01 head (sellion)
+        # 02 ? (nose?)
+        # 03 l_shoulder
+        # 04 l_elbow
+        # 05 l_wrist
+        # 06 l_hip
+        # 07 l_knee
+        # 08 l_ankle
+        # 09 r_shoulder
+        # 10 r_elbow
+        # 11 r_wrist
+        # 12 r_hip
+        # 13 r_knee
+        # 14 r_ankle
+        # 15 l_eye
+        # 16 l_ear
+        # 17 r_eye
+        # 18 r_ear
+        #
+
         edges = []
         if len(poses_3d) > 0:
-
-            
 
             poses_3d = self.rotate_poses(poses_3d)
             poses_3d_copy = poses_3d.copy()

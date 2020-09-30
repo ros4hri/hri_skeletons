@@ -25,8 +25,23 @@ scale_dy = 800
 
 
 class Plotter3d:
-    SKELETON_EDGES = np.array([[11, 10], [10, 9], [9, 0], [0, 3], [3, 4], [4, 5], [0, 6], [6, 7], [7, 8], [0, 12],
-                               [12, 13], [13, 14], [0, 1], [1, 15], [15, 16], [1, 17], [17, 18]])
+    SKELETON_EDGES = np.array([[11, 10], # 00 r_forearm
+                               [10, 9],  # 01 r_upperarm
+                               [9, 0],   # 02 r_shoulder
+                               [0, 3],   # 03 l_shoulder
+                               [3, 4],   # 04 l_upperarm
+                               [4, 5],   # 05 l_forearm
+                               [0, 6],   # 06 l_torso_hip
+                               [6, 7],   # 07 l_tight
+                               [7, 8],   # 08 l_tibia
+                               [0, 12],  # 09 r_torso_hip
+                               [12, 13], # 10 r_tight
+                               [13, 14], # 11 r_tibia
+                               [0, 1],   # 12 torso_head
+                               [1, 15],  # 13 l_head_eye
+                               [15, 16], # 14 l_eye_ear
+                               [1, 17],  # 15 r_head_eye
+                               [17, 18]])# 16 r_eye_ear
 
     def __init__(self, canvas_size, origin=(0.5, 0.5), scale=1):
         self.origin = np.array([origin[1] * canvas_size[1], origin[0] * canvas_size[0]], dtype=np.float32)  # x, y
@@ -64,9 +79,10 @@ class Plotter3d:
     def _plot_edges(self, img, vertices, edges, R):
         vertices_2d = np.dot(vertices, R)
         edges_vertices = vertices_2d.reshape((-1, 2))[edges] * self.scale + self.origin
-        for edge_vertices in edges_vertices:
+        for idx, edge_vertices in enumerate(list(edges_vertices)):
             edge_vertices = edge_vertices.astype(int)
             cv2.line(img, tuple(edge_vertices[0]), tuple(edge_vertices[1]), (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(img, str(idx), tuple((edge_vertices[0] + (edge_vertices[1] - edge_vertices[0])/2).astype(int)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0,255,255))
 
     def _get_rotation(self, theta, phi):
         sin, cos = math.sin, math.cos

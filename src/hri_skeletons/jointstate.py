@@ -21,9 +21,22 @@ HUMAN_JOINT_NAMES = ["waist",
 def compute_jointstate(ik_chains, pose_3d):
     r_arm, l_arm, r_leg, l_leg = ik_chains
 
-    target = [] #TODO from pose_3d -> 3d pose wrist - 3d pose shoulder
-    r_arm.inverse_kinematics(target)
-    return [0.] * len(HUMAN_JOINT_NAMES)
+    torso, _, _, _, _, l_wrist, _, _, l_ankle, _, _, r_wrist, _, _, r_ankle, _, _, _, _ = pose_3d
+
+    r_arm_target = r_wrist - torso # TODO: INCORRECT! need to *transform* r_wrist in the torso's reference frame, eg account for the torso's rotation!!
+    r_arm_joints = r_arm.inverse_kinematics(r_arm_target)
+
+    l_arm_target = l_wrist - torso
+    l_arm_joints = l_arm.inverse_kinematics(l_arm_target)
+
+    r_leg_target = r_ankle - torso
+    r_leg_joints = r_leg.inverse_kinematics(r_leg_target)
+
+    l_leg_target = l_ankle - torso
+    l_leg_joints = l_leg.inverse_kinematics(l_leg_target)
+
+
+    return [0., 0., 0.] + l_arm_joints + r_arm_joints + l_leg_joints + r_leg_joints
 
 
 
