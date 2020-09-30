@@ -34,3 +34,5 @@ $ rosrun hri_skeletons run image:=/usb_cam/image_raw _debug:=true _model:=$HOME/
 
 which should display something like that (debug mode = true):
 
+![debug visualisations](docs/debug_screenshot.jpg)
+
