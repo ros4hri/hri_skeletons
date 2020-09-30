@@ -12,9 +12,9 @@ requires only a RGB stream, and runs at ~15FPS on an Intel 10th gen CPU.
 Installation
 ------------
 
-- Follow first the general [ROS4HRI installation instructions].
+- Follow first the general [ROS4HRI installation instructions](https://git.brl.ac.uk/ROS4HRI/main/blob/master/README.md).
 
-- Install the `hri_msgs` package
+- Install the [`hri_msgs` package](https://git.brl.ac.uk/ROS4HRI/hri_msgs/blob/master/README.md)
 
 - then:
 
@@ -28,9 +28,9 @@ $ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=~/dev .. && make && ma
 
 You can test this node by running:
 ```
-rosrun hri_skeletons human_pose_estimation_3d.py image:=/usb_cam/image_raw _debug:=true _model:=/home/severin/openvino_models/public/human-pose-estimation-3d-0001/FP16/human-pose-estimation-3d-0001.xml
+$ rosrun usb_cam usb_cam
+$ rosrun hri_skeletons run image:=/usb_cam/image_raw _debug:=true _model:=$HOME/openvino_models/public/human-pose-estimation-3d-0001/FP16/human-pose-estimation-3d-0001.xml
 ```
 
 which should display something like that (debug mode = true):
 
-![Screenshot_from_2020-09-25_22-44-09](uploads/dd959478a1f8c2a7fed7c47a822ca7b5/Screenshot_from_2020-09-25_22-44-09.png)
