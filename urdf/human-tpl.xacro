@@ -3,27 +3,23 @@
 
     <!-- User-settable parameters (eg, xacro human-tpl.xacro id:=xyz) -->
     <xacro:property name="id" value="$(arg id)" />
-    <xacro:property name="head_radius" value="$(arg head_radius)" />
-    <xacro:property name="neck_length" value="$(arg neck_length)" />
-    <xacro:property name="neck_shoulder_length" value="$(arg neck_shoulder_length)" />
-    <xacro:property name="upperarm_length" value="$(arg upperarm_length)" />
-    <xacro:property name="forearm_length" value="$(arg forearm_length)" />
-    <xacro:property name="torso_height" value="$(arg torso_height)" />
-    <xacro:property name="waist_length" value="$(arg waist_length)" />
-    <xacro:property name="tight_length" value="$(arg tight_length)" />
-    <xacro:property name="tibia_length" value="$(arg tibia_length)" />
+    <xacro:property name="height" value="$(arg height)" />
 
     <!-- Parameters defaults -->
     <xacro:arg name="id" default="default" />
-    <xacro:arg name="head_radius" default="0.15" />
-    <xacro:arg name="neck_length" default="0.1" />
-    <xacro:arg name="neck_shoulder_length" default="0.2" />
-    <xacro:arg name="upperarm_length" default="0.2" />
-    <xacro:arg name="forearm_length" default="0.3" />
-    <xacro:arg name="torso_height" default="0.5" />
-    <xacro:arg name="waist_length" default="0.3" />
-    <xacro:arg name="tight_length" default="0.4" />
-    <xacro:arg name="tibia_length" default="0.4" />
+    <xacro:arg name="height" default="1.65" />
+
+    <!-- human body proportions taken from https://www.thedrawingsource.com/figure-drawing-proportions.html -->
+    <xacro:property name="size_unit" value="${height/7.5}" />
+    <xacro:property name="head_radius" value="${size_unit/2}" />
+    <xacro:property name="neck_length" value="${size_unit * 0.25}" />
+    <xacro:property name="neck_shoulder_length" value="${size_unit*0.8}" />
+    <xacro:property name="upperarm_length" value="${size_unit*1.6}" />
+    <xacro:property name="forearm_length" value="${size_unit}" />
+    <xacro:property name="torso_height" value="${size_unit*2.75}" />
+    <xacro:property name="waist_length" value="${size_unit*1.2}" />
+    <xacro:property name="tight_length" value="${size_unit*1.5}" />
+    <xacro:property name="tibia_length" value="${size_unit*2}" />
 
     <xacro:property name="arm_radius" value="0.04" />
 
@@ -238,7 +234,7 @@
             <child link="${suffix}_r_hip_${id}"/>
             <origin rpy="${reflect * pi/2} ${pi/2} ${pi}" xyz="0 ${reflect * waist_length/2} 0" />
         </joint>
-        <xacro:limb_segment name="${suffix}_tight_${id}"
+        <xacro:limb_segment name="${suffix}_hip_${id}"
                      length = "${tight_length}"
                      reflect="${reflect}"
                      parent="${suffix}_r_hip_${id}"
@@ -248,7 +244,7 @@
                      link_axis="0 0 ${-reflect}"
                      link_min_limit="-.5"
                      link_max_limit="1.8" />
-        <xacro:limb_segment name="${suffix}_tibia_${id}"
+        <xacro:limb_segment name="${suffix}_knee_${id}"
                      length = "${tibia_length}"
                      reflect="${reflect}"
                      parent="${suffix}_tight_${id}"
