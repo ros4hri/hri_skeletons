@@ -12,9 +12,9 @@ requires only a RGB stream, and runs at ~15FPS on an Intel 10th gen CPU.
 Installation
 ------------
 
-- Follow first the general [ROS4HRI installation instructions](https://git.brl.ac.uk/ROS4HRI/main/blob/master/README.md).
+- Follow first the general [ROS4HRI installation instructions](https://github.com/ros4hri/ros4hri/blob/master/README.md).
 
-- Install the [`hri_msgs` package](https://git.brl.ac.uk/ROS4HRI/hri_msgs/blob/master/README.md)
+- Install the [`hri_msgs` package](https://github.com/ros4hri/hri_msgs/blob/master/README.md)
 
 - then:
 
