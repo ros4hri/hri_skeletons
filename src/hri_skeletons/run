@@ -118,13 +118,25 @@ class HumanPoseEstimator3D:
         rosparam.set_param_raw(human_description, urdf)
 
         urdf_file = io.StringIO(urdf)
-        r_arm_chain = chain.Chain.from_urdf_file(urdf_file, base_elements=["r_y_shoulder_%s" % body_id], base_element_type="joint")
+        r_arm_chain = chain.Chain.from_urdf_file(urdf_file,
+                                                 base_elements=["r_y_shoulder_%s" % body_id],
+                                                 base_element_type="joint",
+                                                 active_links_mask=[False, True, True, True, True, False])
         urdf_file.seek(0)
-        l_arm_chain = chain.Chain.from_urdf_file(urdf_file, base_elements=["l_y_shoulder_%s" % body_id], base_element_type="joint")
+        l_arm_chain = chain.Chain.from_urdf_file(urdf_file,
+                                                 base_elements=["l_y_shoulder_%s" % body_id],
+                                                 base_element_type="joint",
+                                                 active_links_mask=[False, True, True, True, True, False])
         urdf_file.seek(0)
-        r_leg_chain = chain.Chain.from_urdf_file(urdf_file, base_elements=["r_y_hip_%s" % body_id], base_element_type="joint")
+        r_leg_chain = chain.Chain.from_urdf_file(urdf_file,
+                                                 base_elements=["r_y_hip_%s" % body_id],
+                                                 base_element_type="joint",
+                                                 active_links_mask=[False, True, True, True, False])
         urdf_file.seek(0)
-        l_leg_chain = chain.Chain.from_urdf_file(urdf_file, base_elements=["l_y_hip_%s" % body_id], base_element_type="joint")
+        l_leg_chain = chain.Chain.from_urdf_file(urdf_file,
+                                                 base_elements=["l_y_hip_%s" % body_id],
+                                                 base_element_type="joint",
+                                                 active_links_mask=[False, True, True, True, False])
 
         self.ik_chains[body_id] = [r_arm_chain, l_arm_chain, r_leg_chain, l_leg_chain]
 

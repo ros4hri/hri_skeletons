@@ -36,7 +36,7 @@ def compute_jointstate(ik_chains, pose_3d):
     l_leg_joints = l_leg.inverse_kinematics(l_leg_target)
 
 
-    return [0., 0., 0.] + list(l_arm_joints) + list(r_arm_joints) + list(l_leg_joints) + list(r_leg_joints)
+    return [0., 0., 0., 0.] + list(l_arm_joints)[1:-1] + list(r_arm_joints)[1:-1] + list(l_leg_joints)[1:-1] + list(r_leg_joints)[1:-1]
 
 
 
