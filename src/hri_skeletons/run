@@ -49,7 +49,10 @@ from cv_bridge.boost.cv_bridge_boost import getCvType
 TOPIC_PREFIX = "humans/bodies/"
 
 def generate_id():
-    return str(uuid.uuid4())[:5] # for a 5 char long ID
+    """ Generates a 5 char long random ID
+     'e' are removed to avoid IDs like '12e34' that are interpreted by ROS as 12exp(34), which messes up everything.
+    """
+    return str(uuid.uuid4())[:5].replace('e','a')
 
 
 class HumanPoseEstimator3D:
